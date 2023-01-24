@@ -1,0 +1,594 @@
+openapi: '3.0.0'
+info:
+  version: '1.0.0'
+  title: 'Tracktry API'
+  description: Tracking Packages API
+
+servers:
+  - url: https://api.tracktry.com/v1
+    description: Production base URL
+
+paths:
+  /carriers:
+    get: 
+      summary: List all carriers
+      responses:
+        '200':
+          description: Returns list of all available carriers.
+          content:
+            application/json: 
+              schema: 
+                type: array
+                items:
+                  $ref: '#/components/schemas/Carrier'
+  /carriers/detect: 
+    description: Detect a carrier by tracking code
+    post: 
+      summary: Detect a carrier by tracking code
+      requestBody: 
+        description: the tracking code for which you`re trying to find a carrier
+        required: true
+        content: 
+          application/json: 
+            schema: 
+              type: object
+              required: 
+                - tracking_number
+              properties: 
+                tracking_number:
+                  type: string
+      responses:
+        '200':
+          description: Returns a list of carriers that match the tracking code
+          content:
+            application/json:
+              schema: 
+                description: carrier list response
+                type: object
+                properties:
+                  meta: 
+                    $ref: '#/components/schemas/MetaResponse'
+                  data: 
+                    type: array
+                    items: 
+                      $ref: '#/components/schemas/Carrier'                
+  /trackings/post:
+    description: Create tracking item
+    post: 
+      requestBody: 
+        required: true
+        content: 
+          application/json:
+            schema: 
+              $ref: '#/components/schemas/BaseTracking'                
+      responses:
+        '200': 
+          description: return new tracking item created
+          content: 
+            application/json:
+              schema: 
+                $ref: '#/components/schemas/Tracking'
+  /trackings/batch:
+    description: create multiple trackings
+    post: 
+      requestBody: 
+        required: true
+        content: 
+          application/json:
+            schema: 
+              type: array
+              items: 
+                $ref: '#/components/schemas/BaseTracking'
+      responses:
+        '201': 
+          description: when something went wrong
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                properties: 
+                  meta: 
+                    $ref: '#/components/schemas/MetaResponse'
+                  data: 
+                    $ref: '#/components/schemas/BatchDataResponseFailure'
+        '200': 
+          description: when ok
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                properties: 
+                  meta: 
+                    $ref: '#/components/schemas/MetaResponse'
+                  data: 
+                    $ref: '#/components/schemas/BatchDataResponseOk'
+  /trackings/realtime:
+    description: Get realtime tracking results of a single tracking
+    post: 
+      requestBody: 
+        required: true
+        content: 
+          application/json:
+            schema: 
+              $ref: '#/components/schemas/BaseTracking'
+      responses:
+        '200':
+          description: successfull response
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                required: 
+                  - meta
+                  - data
+                properties: 
+                  meta: 
+                    $ref: '#/components/schemas/MetaResponse'
+                  data: 
+                    type: object
+                    required: 
+                      - items
+                    properties: 
+                      items: 
+                        type: array
+                        items: 
+                          $ref: '#/components/schemas/RealtimeTracking'
+  /trackings/get: 
+    description: List all trackings
+    get:
+      parameters:
+        - name: page
+          in: query
+          schema: 
+            $ref: '#/components/schemas/PageParameter'
+        - in: query
+          name: limit
+          schema:
+            $ref: '#/components/schemas/LimitParameter'
+        - in: query
+          name: status
+          schema: 
+            $ref: '#/components/schemas/StatusParameter'
+          description: items with status
+        - in: query
+          name: created_at_min
+          schema: 
+            $ref: '#/components/schemas/UnixTimestampParameter'
+          description: Start date and time of trackings created(format:The unix timestamp example:1076599161)
+        - in: query
+          name: created_at_max
+          schema: 
+            $ref: '#/components/schemas/UnixTimestampParameter'
+            default: now
+          description: End date and time of trackings created.(format:The unix timestamp example:1076570361)
+        - in: query
+          name: update_time_min
+          schema: 
+            $ref: '#/components/schemas/UnixTimestampParameter'
+          description: Start date and time of trackings updated(format:The unix timestamp example:1076599161)
+        - in: query
+          name: update_time_max
+          schema: 
+            $ref: '#/components/schemas/UnixTimestampParameter'
+            default: now
+          description: End date and time of trackings updated.(format:The unix timestamp example:1076570361)
+        - in: query
+          name: order_created_time_min
+          schema: 
+            $ref: '#/components/schemas/UnixTimestampParameter'
+          description: Start date and time of trackings created(format:The unix timestamp example:1076599161)
+        - in: query
+          name: order_created_time_max
+          schema: 
+            $ref: '#/components/schemas/UnixTimestampParameter'
+            default: now
+          description: End date and time of trackings created.(format:The unix timestamp example:1076570361)
+        - in: query
+          name: lang
+          schema: 
+            $ref: '#/components/schemas/CountryCode'  
+          description: Return to language type (only when courier official website supports).
+        - in: query
+          name: numbers
+          schema: 
+            type: string
+          description: 'Track number (max 40), multiple numbers must be separated by comma. (Example: numbers=LX123445678CN,LX456789123CN)'
+        - in: query
+          name: orders
+          schema: 
+            type: string
+          description: 'Order number (max 40), multiple numbers must be separated by comma. (Example: orders=1234456,456789)'
+      responses:
+        '200': 
+          description: successfull response
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                properties: 
+                  meta: 
+                    $ref: '#/components/schemas/MetaResponse'
+                  data: 
+                    type: object
+                    required: 
+                      - page
+                      - limit
+                      - total
+                      - items
+                    properties: 
+                      page: 
+                        type: integer
+                      limit: 
+                        type: integer
+                      total: 
+                        type: integer
+                      items: 
+                        type: array
+                        items: 
+                          $ref: '#/components/schemas/RealtimeTracking'
+  /trackings/{carrier_code}/{tracking_number}:
+    get: 
+      description: Get tracking results of a single tracking.
+      parameters:
+        - in: path
+          name: carrier_code
+          schema: 
+            $ref: '#/components/schemas/CarrierCode'
+          required: true
+        - in: path
+          name: tracking_number
+          schema: 
+            $ref: '#/components/schemas/TrackingNumber'
+          required: true
+      responses:
+        '200': 
+          description: successfull response
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                properties: 
+                  meta: 
+                    $ref: '#/components/schemas/MetaResponse'
+                  data: 
+                    $ref: '#/components/schemas/RealtimeTracking'
+    put: 
+      description: Update Tracking item
+      parameters:
+        - in: path
+          name: carrier_code
+          schema: 
+            $ref: '#/components/schemas/CarrierCode'
+          required: true
+        - in: path
+          name: tracking_number
+          schema: 
+            $ref: '#/components/schemas/TrackingNumber'
+          required: true
+      requestBody: 
+        required: true
+        content: 
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BaseTracking'
+      responses:
+        '200': 
+          description: successfull response
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                properties: 
+                  meta: 
+                    $ref: '#/components/schemas/MetaResponse'
+                  data: 
+                    $ref: '#/components/schemas/RealtimeTracking'
+    delete: 
+      description: Delete a tracking item
+      parameters:
+        - in: path
+          name: carrier_code
+          schema: 
+            $ref: '#/components/schemas/CarrierCode'
+          required: true
+        - in: path
+          name: tracking_number
+          schema: 
+            $ref: '#/components/schemas/TrackingNumber'
+          required: true
+      responses:
+        '200': 
+          description: successfull response
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                properties: 
+                  meta: 
+                    $ref: '#/components/schemas/MetaResponse'
+                  data: 
+                    $ref: '#/components/schemas/RealtimeTracking'
+components:
+  schemas:
+    UnixTimestampParameter: 
+      type: integer
+      description: Unix timestamp
+    PageParameter:
+      type: integer
+      description: Page to display
+      minimum: 1
+      default: 1
+    LimitParameter: 
+      type: integer
+      description: The numbers of items to return
+      minimum: 1
+      default: 100
+    RealtimeTracking:
+      type: object
+      required: 
+        - id
+        - tracking_number
+        - carrier_code
+        - status
+      properties: 
+        id:
+          type: string
+        tracking_number:
+          $ref: '#/components/schemas/TrackingNumber'
+        carrier_code: 
+          $ref: '#/components/schemas/CarrierCode'
+        order_creat_time: 
+          type: string
+        status: 
+          $ref: '#/components/schemas/TrackingStatus'
+        original_country: 
+          type: string
+          description: origin country
+        destination_country: 
+          type: string
+          description: destination country
+        itemTimeLength: 
+          type: integer
+        stayTimeLength: 
+          type: integer
+        service_code:
+          type: string
+        origin_info:
+          $ref: '#/components/schemas/RealtimeInformation'
+        destination_info: 
+          $ref: '#/components/schemas/RealtimeInformation'
+        lastEvent: 
+          type: string
+        lastUpdateTime: 
+          type: string
+          format: datetime
+    RealtimeInformation: 
+      type: object
+      required: 
+        - weblink
+        - phone
+        - carrier_code
+        - tracking_info
+      properties: 
+        ItemReceived: 
+          type: string
+          format: datetime
+        ItemDispatched: 
+          type: string
+          format: datetime
+        DepartfromAirport: 
+          type: string
+          format: datetime
+        ArrivalfromAbroad: 
+          type: string
+          format: datetime
+        CustomsClearrance: 
+          type: string
+          format: datetime
+        DestinationArrived: 
+          type: string
+          format: datetime
+        weblink: 
+          type: string
+          format: uri
+        phone: 
+          type: string
+          format: phone
+        carrier_code: 
+          $ref: '#/components/schemas/CarrierCode'
+        trackinfo: 
+          type: array
+          items: 
+            $ref: '#/components/schemas/TrackingEvent'
+    TrackingEvent:
+      type: object
+      required: 
+        - Date
+        - StatusDescription
+        - Details
+      properties: 
+        Date: 
+          type: string
+          format: datetime
+        StatusDescription: 
+          type: string
+        Details:
+          type: string
+        checkpoint_status: 
+          $ref: '#/components/schemas/TrackingStatus'  
+    BatchDataResponseOk: 
+      type: object
+      description: when all trackings were created ok
+      properties: 
+        allOf: 
+          $ref: '#/components/schemas/BatchDataResponse'
+        trackings: 
+          type: array
+          items: 
+            $ref: '#/components/schemas/Tracking'
+    BatchDataResponseFailure: 
+      type: object
+      description: when one or more trackings were not created
+      properties: 
+        allOf: 
+          $ref: '#/components/schemas/BatchDataResponse'
+        errors: 
+          type: array
+          items: 
+            $ref: '#/components/schemas/TrackingError'
+    BatchDataResponse: 
+      type: object
+      required: 
+        - submitted
+        - added
+      properties: 
+        submitted: 
+          type: integer
+        added: 
+          type: integer
+    Tracking:
+      allOf:
+        - $ref: '#/components/schemas/BaseTracking'
+        - type: object
+          required: 
+            - id
+            - status
+          properties:
+            id: 
+              type: string
+            status: 
+              $ref: '#/components/schemas/TrackingStatus'
+    BaseTracking: 
+      type: object
+      required: 
+        - tracking_number
+        - carrier_code
+      properties: 
+        tracking_number:
+          $ref: '#/components/schemas/TrackingNumber'
+        carrier_code:
+          $ref: '#/components/schemas/CarrierCode'
+        destination_code:
+          $ref: '#/components/schemas/CountryCode'
+        title: 
+          type: string
+          description: title of the tracking
+        logistic_channel:
+          type: string
+          description: Logistics channel of the tracking (?)
+        customer_name: 
+          type: string   
+          description: customer name       
+        customer_email: 
+          type: string
+          description: Email address to receive email notifications of the customer.
+          format: email
+        customer_phone:
+          type: string
+          description: Phone number to receive SMS notifications.
+          format: phone
+        order_id:
+          type: string
+          description: tracking OrderID
+        order_create_time:
+          type: string
+          description: Order Create Time(eg:2017/8/27 16:51).
+        tracking_ship_date: 
+          type: string
+          description: Shipping date in YYYYMMDD format. Required by some couriers, such as deutsch-post.
+        tracking_postal_code:
+          type: string
+          description: The postal code of receiver's address. Required by some couriers, such as postnl-3s.
+        tracking_account_number: 
+          type: string
+          description: Account number (?)
+        tracking_destination_country:
+          type: string
+          description: Destination Country of the shipment for a specific courier. Required by some couriers, such as postnl-3s.
+        lang: 
+          type: string
+          description: Return to language type (only when courier official website supports).
+        auto_correct:
+          type: string
+          description: Auto detect carriers when it's blank. You can set 1 if need to specify the carrier_code.
+        comment: 
+          type: string
+    MetaResponse:
+      description: Maybe additional response
+      type: object
+      properties:
+        code: 
+          $ref: '#/components/schemas/ApiStatusCode'
+        type: 
+          type: string
+        message:
+          type: string
+    Carrier:
+      description: Carrier information
+      type: object
+      required: 
+        - name
+        - code
+      properties: 
+        name: 
+          type: string
+        code: 
+          $ref: '#/components/schemas/CarrierCode'
+        phone: 
+          type: string
+        homepage: 
+          type: string
+          format: uri
+        type: 
+          type: string
+        picture: 
+          type: string
+          format: uri
+    TrackingStatus:
+      type: string
+      description: tracking statuses
+      enum: 
+        - pending
+        - notfound
+        - transit
+        - pickup
+        - delivered
+        - undelivered
+        - exception
+        - expired
+    TrackingError:
+      type: object
+      required:
+        - message
+      properties:
+        tracking_number: 
+          $ref: '#/components/schemas/TrackingNumber'
+        carrier_code: 
+          $ref: '#/components/schemas/CarrierCode'
+        code: 
+          $ref: '#/components/schemas/ApiStatusCode'
+        message:
+          description: A human readable error message
+          type: string
+    CarrierCode: 
+      type: string
+      description: Unique carrier code identifier
+    TrackingNumber: 
+      type: string
+      description: Unique tracking number identifier
+    CountryCode: 
+      type: string
+      description: destination carrier code (ISO Alpha-2 Code)
+      minLength: 2
+      maxLength: 2
+      pattern: '^[A-Za-z]{2}$'
+    ApiStatusCode: 
+      type: integer
+      description: API status code (https://www.tracktry.com/api-status_code.html)
+  securitySchemes:
+    ApiKey:
+      type: apiKey
+      in: header
+      name: Tracktry-Api-Key
+security:
+  - ApiKey: [] 
